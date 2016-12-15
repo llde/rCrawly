@@ -15,7 +15,10 @@ impl Parse for Parsed{
         let dom = Document::from(&*parsing);
         let mut links = Vec::new();
         for node in dom.find(Name("a")).iter(){
-            links.push(node.attr("href").unwrap().to_string());
+            let link = node.attr("href");
+            if let Some(lin) = link{
+                links.push(lin.to_string());
+            }
         }
         Parsed{links: links }
     }

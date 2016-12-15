@@ -1,4 +1,3 @@
-extern crate find_folder;
 
 pub struct Crawly{
     name : String,

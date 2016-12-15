@@ -50,9 +50,13 @@ impl DagonCrawler{
                         println!("Read: {}", url);
                       //  self.loaded.push(url);
                         loaded_arc.lock().unwrap().push(url);
-                        let links = result.parsed.unwrap().links;
-                        for link in links{
-                            to_load_arc1.lock().unwrap().push(link);
+                        if let Some(pars) = result.parsed {
+                            for link in pars.links {
+                                to_load_arc1.lock().unwrap().push(link);
+                            }
+                        }
+                        else{
+                            println!("{}" , result.exception.unwrap());
                         }
                         //TODO everything else.
                     }
