@@ -12,10 +12,18 @@ impl GondorLoader{
         GondorLoader {client: Client::new()}
     }
     pub fn load(&self, uri: &str) -> LoadResult{
-        let mut amen = self.client.get(uri).send().unwrap();
-        let mut resp = String::new();
-        amen.read_to_string(&mut resp);
-        LoadResult{succeded: true, uri: uri.to_string(), parsed: Parsed::parse(resp)}
+        let mut amen = self.client.get(uri).send();
+        if let Ok(mut content) = amen{
+            let mut resp = String::new();
+            content.read_to_string(&mut resp);
+            LoadResult::new(uri.to_string(), Parsed::parse(resp))
+        }
+        else if let Err(error) = amen{
+            LoadResult::new_error(uri.to_string(), error)
+        }
+        else{
+            unreachable!();
+        }
     }
 }
 
