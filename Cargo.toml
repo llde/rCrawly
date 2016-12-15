@@ -1,0 +1,11 @@
+[package]
+name = "rCrawly"
+version = "0.1.0"
+authors = ["Lorenzo <lorenzofersteam@live.it>"]
+
+[dependencies]
+select = "0.3.0"
+hyper = "0.9.12"
+find_folder = "0.3.0"
+eventual = "0.1.7"
+thread-scoped = "1.0.1"
