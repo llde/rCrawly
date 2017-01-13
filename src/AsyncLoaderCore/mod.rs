@@ -142,8 +142,9 @@ impl AsyncLoader{
         AsyncLoader{loaders : Arc::new(Mutex::new(loaders)), workers : ThreadPoolExecutor::new(num), active : AtomicBool::new(true)}
     }
 
-    pub fn loadAsync(&self ,uri1 : String) -> Arc<Future<LoadResult>>{
+    pub fn loadAsync(&self ,uri1 : &str) -> Arc<Future<LoadResult>>{
         let arc = self.loaders.clone();
+        let str = uri1.to_string();
         let fut = self.workers.submit(move || {
             let loader;
             let arc1 = arc;
@@ -151,7 +152,7 @@ impl AsyncLoader{
                 let ref mut sss = *arc1.as_ref().lock().unwrap();
                 loader = sss.remove(0);
             }
-            let result = loader.load(&uri1);
+            let result = loader.load(&str);
             {
                 let ref mut sss = *arc1.as_ref().lock().unwrap();
                 sss.push(loader);
