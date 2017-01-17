@@ -5,5 +5,5 @@ authors = ["Lorenzo <lorenzofersteam@live.it>"]
 
 [dependencies]
 select = "0.3.0"
-hyper = "0.9.14"
+hyper = "0.10.0"
 #TODO Switch from select to use directly html5ever
