@@ -18,11 +18,11 @@ pub mod API;
 
 fn main(){
     println!("Hello");
-   // let crawler = CrawlerCore::DagonCrawler::new(HashSet::new(),HashSet::new(),HashSet::new());
-  //  crawler.add("https://bugs.winehq.org/show_bug.cgi?id=1".to_string());
-  //  crawler.start();
-  //  loop{}
-   let mut async  = AsyncLoaderCore::AsyncLoader::new(50);
+    let crawler = CrawlerCore::DagonCrawler::new(HashSet::new(),HashSet::new(),HashSet::new());
+    crawler.add("https://bugs.winehq.org/show_bug.cgi?id=1".to_string());
+    crawler.start();
+    loop{}
+  /* let mut async  = AsyncLoaderCore::AsyncLoader::new(50);
    let mut vect : Vec<Arc<Future<LoadResult>>>  = Vec::new();
    //Crawly::new();
    for i  in 0..1000 {
@@ -35,7 +35,10 @@ fn main(){
     for fut in vect{
         let res = fut.get();
         if let Some(result) = res {
-           println!("{:?}", result.uri);
-        }
-    }
+            println!("{:?}", result.uri);
+            if let Some(ex) = result.exception{
+                println!("Exception : {}", ex);
+            }
+       }
+    }*/
 }

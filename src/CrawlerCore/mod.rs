@@ -32,49 +32,48 @@ impl DagonCrawler{
     pub fn start(&self){
         //TODO status.
         let mut to_load_arc = self.to_load.clone();
-        let mut to_load_arc1 = self.to_load.clone();
         let mut async_arc = self.async.clone();
         let mut progr_arc = self.progression.clone();
-        let mut progr_arc1 = self.progression.clone();
         let mut loaded_arc = self.loaded.clone();
         let mut errors_arc  = self.errors.clone();
         thread::spawn(move || {
-            //Producer
+            //Producer and Consumer . //TODO Split
             loop {
-           /*     let url = to_load_arc.lock().unwrap().into_iter().next();
-                if let Some(s) = url {
-                    println!("Submitted: {}", s);
-                    let x = async_arc.loadAsync(&s);
-               //     to_load_arc.lock().unwrap().remove(s);
+                for url in to_load_arc.lock().unwrap().iter() {
+                    println!("Submitted: {}", url);
+                    let x = async_arc.loadAsync(&url);
                     progr_arc.lock().unwrap().push_back(x);
-                }*/
-            }
-        });
-        thread::spawn(move || {
-            //Consumer
-            loop {
-                let el = progr_arc1.lock().unwrap().pop_front();
-                if let Some(elt) = el {
-                    if let Some(result) = elt.get() {
-                        let url = result.uri;
-                        println!("Read: {}", url);
-                      //  self.loaded.push(url);
-                        if let Some(pars) = result.parsed {
-                            loaded_arc.lock().unwrap().insert(url);
-                            for link in pars.links {
-                                to_load_arc1.lock().unwrap().insert(link);
-                            }
+                }
+
+                for fut in progr_arc.lock().unwrap().iter(){
+                    let res : LoadResult;
+                    loop{
+                        let x = fut.get();
+                        if let Some(el) = x{
+                            res = el;
+                            break;
                         }
-                        else{
-                  //          errors_arc.lock().unwrap().insert(result.uri);
-                            println!("{}" , result.exception.unwrap());
-                        }
-                        //TODO everything else.
                     }
-                    else{
-                        progr_arc1.lock().unwrap().push_back(elt);
+                    //TODO make non-blocking
+                    if let Some(ex) = res.exception{
+                        println!("Excepted : {} \n  Reason : {}", &res.uri,ex);
+                        errors_arc.lock().unwrap().insert(res.uri);
+
+                    }
+                    else if let Some(par) = res.parsed{
+                        println!("Suceeeded : {} \n ", &res.uri);
+                        {
+                            let mut locks = (to_load_arc.lock().unwrap(), loaded_arc.lock().unwrap());
+                            locks.0.remove(&res.uri);
+                            locks.1.insert(res.uri);
+                        }
+                        for url in par.consume(){
+                            //TODO controls.
+                            to_load_arc.lock().unwrap().insert(url);
+                        }
                     }
                 }
+                progr_arc.lock().unwrap().clear();
             }
         });
     }

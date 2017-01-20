@@ -1,3 +1,6 @@
+extern crate hyper_rustls;
+use hyper::net::HttpsConnector;
+use self::hyper_rustls::TlsClient;
 use hyper::Client;
 use super::loadResult::LoadResult;
 use super::Parsing::{Parsed,Parse};
@@ -9,7 +12,7 @@ pub struct GondorLoader {
 
 impl GondorLoader{
     pub fn new() -> GondorLoader{
-        GondorLoader {client: Client::new()}
+        GondorLoader {client: Client::with_connector(HttpsConnector::new(TlsClient::new()))}
     }
     pub fn load(&self, uri: &str) -> LoadResult{
         let mut amen = self.client.get(uri).send();
