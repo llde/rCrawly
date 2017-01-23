@@ -23,6 +23,7 @@ pub struct DagonCrawler{
 }
 
 
+
 impl DagonCrawler{
     pub fn new(to_load : HashSet<String>, loaded: HashSet<String>, errors : HashSet<String>) -> DagonCrawler{
         DagonCrawler{async : Arc::new(AsyncLoader::new(50)), to_load : Arc::new(Mutex::new(to_load)), loaded: Arc::new(Mutex::new(loaded)), errors: Arc::new(Mutex::new(errors)), progression : Arc::new(Mutex::new(VecDeque::new())), status : Arc::new(Mutex::new(STATUS::INIT))}
@@ -68,7 +69,12 @@ impl DagonCrawler{
                             locks.1.insert(res.uri);
                         }
                         for url in par.consume(){
-                            //TODO controls.
+                            let tl = to_load_arc.lock().unwrap().contains(&url);
+                            if tl == true{continue;}
+                            let ll = loaded_arc.lock().unwrap().contains(&url);
+                            if ll == true {continue;}
+                            let el = errors_arc.lock().unwrap().contains(&url);
+                            if el == true  {continue;}
                             to_load_arc.lock().unwrap().insert(url);
                         }
                     }
@@ -79,7 +85,13 @@ impl DagonCrawler{
     }
 
     pub fn add(&self, url : String){
-        //TODO controls
+        //TODO State Controls
+        let tl = self.to_load.lock().unwrap().contains(&url);
+        if tl == true{return;}
+        let ll = self.loaded.lock().unwrap().contains(&url);
+        if ll == true {return;}
+        let el = self.errors.lock().unwrap().contains(&url);
+        if el == true  {return;}
         let cont = self.loaded.lock().unwrap().contains(&url);
         self.to_load.lock().unwrap().insert(url);
     }

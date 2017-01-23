@@ -1,6 +1,5 @@
 pub use super::Parsing::Parsed;
 use hyper::error::Error;
-
 pub struct LoadResult{
     pub uri : String,
     pub parsed : Option<Parsed>,
