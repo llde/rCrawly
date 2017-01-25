@@ -1,9 +1,11 @@
-use super::AsyncLoaderCore::{AsyncLoader,Future};
+use super::AsyncLoaderCore::AsyncLoader;
 use super::LoaderCore::*;
 use super::LoaderCore::Parsing::Parse;
+use super::API::Future;
 use std::sync::{Arc,Mutex};
 use std::collections::{VecDeque,HashSet};
 use std::thread;
+use hyper::Url;
 
 enum STATUS{
     INIT,
@@ -15,9 +17,9 @@ enum STATUS{
 
 pub struct DagonCrawler{
     async : Arc<AsyncLoader>,
-    to_load : Arc<Mutex<HashSet<String>>>,
-    loaded : Arc<Mutex<HashSet<String>>>,
-    errors : Arc<Mutex<HashSet<String>>>,
+    to_load : Arc<Mutex<HashSet<Url>>>,
+    loaded : Arc<Mutex<HashSet<Url>>>,
+    errors : Arc<Mutex<HashSet<Url>>>,
     progression : Arc<Mutex<VecDeque<Arc<Future<LoadResult>>>>>,
     status : Arc<Mutex<STATUS>>, //TODO ENUM
 }
@@ -25,7 +27,7 @@ pub struct DagonCrawler{
 
 
 impl DagonCrawler{
-    pub fn new(to_load : HashSet<String>, loaded: HashSet<String>, errors : HashSet<String>) -> DagonCrawler{
+    pub fn new(to_load : HashSet<Url>, loaded: HashSet<Url>, errors : HashSet<Url>) -> DagonCrawler{
         DagonCrawler{async : Arc::new(AsyncLoader::new(50)), to_load : Arc::new(Mutex::new(to_load)), loaded: Arc::new(Mutex::new(loaded)), errors: Arc::new(Mutex::new(errors)), progression : Arc::new(Mutex::new(VecDeque::new())), status : Arc::new(Mutex::new(STATUS::INIT))}
         //unimplemented!()
     }
@@ -42,7 +44,7 @@ impl DagonCrawler{
             loop {
                 for url in to_load_arc.lock().unwrap().iter() {
                     println!("Submitted: {}", url);
-                    let x = async_arc.loadAsync(&url);
+                    let x = async_arc.loadAsync(url.clone());
                     progr_arc.lock().unwrap().push_back(x);
                 }
 
@@ -55,27 +57,36 @@ impl DagonCrawler{
                             break;
                         }
                     }
-                    //TODO make non-blocking
+                    //TODO make non-blocking. Require Future::is_done()
+                    let base_url = res.uri;
                     if let Some(ex) = res.exception{
-                        println!("Excepted : {} \n  Reason : {}", &res.uri,ex);
-                        errors_arc.lock().unwrap().insert(res.uri);
+                        println!("Excepted : {} \n  Reason : {}", &base_url ,ex);
+                        to_load_arc.lock().unwrap().remove(&base_url);
+                        errors_arc.lock().unwrap().insert(base_url);
 
                     }
                     else if let Some(par) = res.parsed{
-                        println!("Suceeeded : {} \n ", &res.uri);
+                        println!("Suceeeded : {} \n ", &base_url);
+                        for url in par.consume(){
+                            let opt = base_url.join(&url);
+                            if let Ok(new_url) = opt {
+                                let tl = to_load_arc.lock().unwrap().contains(&new_url);
+                                if tl == true { continue; }
+                                let ll = loaded_arc.lock().unwrap().contains(&new_url);
+                                if ll == true { continue; }
+                                let el = errors_arc.lock().unwrap().contains(&new_url);
+                                if el == true { continue; }
+                                //TODO CrawlerResult and control with the predicate
+                                to_load_arc.lock().unwrap().insert(new_url);
+                            }
+                            else if let Err(error) = opt{
+                                println!("{:?}", error);
+                            }
+                        }
                         {
                             let mut locks = (to_load_arc.lock().unwrap(), loaded_arc.lock().unwrap());
-                            locks.0.remove(&res.uri);
-                            locks.1.insert(res.uri);
-                        }
-                        for url in par.consume(){
-                            let tl = to_load_arc.lock().unwrap().contains(&url);
-                            if tl == true{continue;}
-                            let ll = loaded_arc.lock().unwrap().contains(&url);
-                            if ll == true {continue;}
-                            let el = errors_arc.lock().unwrap().contains(&url);
-                            if el == true  {continue;}
-                            to_load_arc.lock().unwrap().insert(url);
+                            locks.0.remove(&base_url);
+                            locks.1.insert(base_url);
                         }
                     }
                 }
@@ -84,7 +95,7 @@ impl DagonCrawler{
         });
     }
 
-    pub fn add(&self, url : String){
+    pub fn add(&self, url : Url){
         //TODO State Controls
         let tl = self.to_load.lock().unwrap().contains(&url);
         if tl == true{return;}

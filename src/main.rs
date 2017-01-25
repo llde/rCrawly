@@ -3,10 +3,10 @@
 pub extern crate hyper;
 use std::sync::Arc;
 use std::collections::HashSet;
-pub use hyper::Client;
+pub use hyper::{Client,Url};
 pub use LoaderCore::loader::GondorLoader;
 pub use LoaderCore::loadResult::LoadResult;
-pub use AsyncLoaderCore::{AsyncLoader,Future};
+pub use AsyncLoaderCore::AsyncLoader;
 pub use CrawlerCore::DagonCrawler;
 pub use GUI::Crawly;
 pub mod LoaderCore;
@@ -19,7 +19,7 @@ pub mod API;
 fn main(){
     println!("Hello");
     let crawler = CrawlerCore::DagonCrawler::new(HashSet::new(),HashSet::new(),HashSet::new());
-    crawler.add("https://bugs.winehq.org/show_bug.cgi?id=1".to_string());
+    crawler.add(Url::parse("https://bugs.winehq.org/show_bug.cgi?id=1").unwrap());
     crawler.start();
     loop{}
   /* let mut async  = AsyncLoaderCore::AsyncLoader::new(50);
