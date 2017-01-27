@@ -16,6 +16,7 @@ enum STATUS{
 }
 
 pub struct DagonCrawler{
+    //TODO get concurrent data structures for better performance
     async : Arc<AsyncLoader>,
     to_load : Arc<Mutex<HashSet<Url>>>,
     loaded : Arc<Mutex<HashSet<Url>>>,
@@ -41,10 +42,13 @@ impl DagonCrawler{
         let mut errors_arc  = self.errors.clone();
         thread::spawn(move || {
             //Producer and Consumer . //TODO Split
+            let mut holder = HashSet::new();
             loop {
                 for url in to_load_arc.lock().unwrap().iter() {
+                    if(holder.contains(url)){continue;}
                     println!("Submitted: {}", url);
                     let x = async_arc.loadAsync(url.clone());
+                    holder.insert(url.clone());
                     progr_arc.lock().unwrap().push_back(x);
                 }
 
