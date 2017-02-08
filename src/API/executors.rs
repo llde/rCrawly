@@ -26,6 +26,7 @@ impl <T> ThreadPoolExecutor<T> where T: Send + 'static{
         ThreadPoolExecutor{workers: Arc::new(Mutex::new(VecDeque::new())), status : STATUS::INIT, task_count : 0, num_thread : num_threads, current_threads:Arc::new(RwLock::new(0))}
     }
 
+
     pub fn submit<F>(&self, function : F ) -> Arc<Future<T>> where F : FnOnce() -> T + Send +'static {
         let fut = Arc::new(Future::new(function));
         self.workers.lock().unwrap().push_back(fut.clone());
@@ -35,11 +36,11 @@ impl <T> ThreadPoolExecutor<T> where T: Send + 'static{
                 let mut guard = self.current_threads.write().unwrap();
                 *guard += 1;
             }
-            let mut arc = self.workers.clone();
-            let mut arc_curr_thread = self.current_threads.clone();
+            let arc = self.workers.clone();
+            let arc_curr_thread = self.current_threads.clone();
             thread::spawn(move ||{
                 loop{
-                    let mut option = None;
+                    let option;
                     {
                         option = arc.lock().unwrap().pop_front();
                     }
@@ -55,5 +56,10 @@ impl <T> ThreadPoolExecutor<T> where T: Send + 'static{
         }
         fut
     }
+
+    pub fn shutdown(&self, now : bool) -> (){
+        self.workers.lock().unwrap().clear();
+    }
+
 }
 

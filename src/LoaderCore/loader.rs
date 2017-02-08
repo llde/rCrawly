@@ -15,9 +15,10 @@ impl GondorLoader{
         GondorLoader {client: Client::with_connector(HttpsConnector::new(TlsClient::new()))}
     }
     pub fn load(&self, uri: Url) -> LoadResult{
-        let mut amen = self.client.get(uri.as_str()).send();
+        let amen = self.client.get(uri.as_str()).send();
         if let Ok(mut content) = amen{
             let mut resp = String::new();
+            //TODO handle possible read_to_string failures
             content.read_to_string(&mut resp);
             LoadResult::new(uri, Parsed::parse(resp))
         }

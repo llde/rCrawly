@@ -45,56 +45,50 @@ impl DagonCrawler{
             let mut holder = HashSet::new();
             loop {
                 for url in to_load_arc.lock().unwrap().iter() {
-                    if(holder.contains(url)){continue;}
+                    if holder.contains(url){continue;}
                     println!("Submitted: {}", url);
                     let x = async_arc.loadAsync(url.clone());
                     holder.insert(url.clone());
                     progr_arc.lock().unwrap().push_back(x);
                 }
-
-                for fut in progr_arc.lock().unwrap().iter(){
-                    let res : LoadResult;
-                    loop{
-                        let x = fut.get();
-                        if let Some(el) = x{
-                            res = el;
-                            break;
-                        }
-                    }
-                    //TODO make non-blocking. Require Future::is_done()
-                    let base_url = res.uri;
-                    if let Some(ex) = res.exception{
-                        println!("Excepted : {} \n  Reason : {}", &base_url ,ex);
-                        to_load_arc.lock().unwrap().remove(&base_url);
-                        errors_arc.lock().unwrap().insert(base_url);
-
-                    }
-                    else if let Some(par) = res.parsed{
-                        println!("Suceeeded : {} \n ", &base_url);
-                        for url in par.consume(){
-                            let opt = base_url.join(&url);
-                            if let Ok(new_url) = opt {
-                                let tl = to_load_arc.lock().unwrap().contains(&new_url);
-                                if tl == true { continue; }
-                                let ll = loaded_arc.lock().unwrap().contains(&new_url);
-                                if ll == true { continue; }
-                                let el = errors_arc.lock().unwrap().contains(&new_url);
-                                if el == true { continue; }
-                                //TODO CrawlerResult and control with the predicate
-                                to_load_arc.lock().unwrap().insert(new_url);
+                let mut holderer = Vec::new();
+                for (index, fut) in progr_arc.lock().unwrap().iter().enumerate(){
+                    if fut.is_done() {
+                        let res = fut.get().unwrap();
+                        let base_url = res.uri;
+                        if let Some(ex) = res.exception {
+                            println!("Excepted : {} \n  Reason : {}", &base_url, ex);
+                            to_load_arc.lock().unwrap().remove(&base_url);
+                            errors_arc.lock().unwrap().insert(base_url);
+                        } else if let Some(par) = res.parsed {
+                            println!("Suceeeded : {} \n ", &base_url);
+                            for url in par.consume() {
+                                let opt = base_url.join(&url);
+                                if let Ok(new_url) = opt {
+                                    let tl = to_load_arc.lock().unwrap().contains(&new_url);
+                                    if tl == true { continue; }
+                                    let ll = loaded_arc.lock().unwrap().contains(&new_url);
+                                    if ll == true { continue; }
+                                    let el = errors_arc.lock().unwrap().contains(&new_url);
+                                    if el == true { continue; }
+                                    //TODO CrawlerResult and control with the predicate
+                                    to_load_arc.lock().unwrap().insert(new_url);
+                                } else if let Err(error) = opt {
+                                    println!("{:?}", error);
+                                }
                             }
-                            else if let Err(error) = opt{
-                                println!("{:?}", error);
+                            {
+                                let mut locks = (to_load_arc.lock().unwrap(), loaded_arc.lock().unwrap());
+                                locks.0.remove(&base_url);
+                                locks.1.insert(base_url);
                             }
                         }
-                        {
-                            let mut locks = (to_load_arc.lock().unwrap(), loaded_arc.lock().unwrap());
-                            locks.0.remove(&base_url);
-                            locks.1.insert(base_url);
-                        }
+                        holderer.push(index);
                     }
                 }
-                progr_arc.lock().unwrap().clear();
+                for index in holderer.into_iter().rev(){
+                    progr_arc.lock().unwrap().remove(index);
+                }
             }
         });
     }

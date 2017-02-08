@@ -18,7 +18,7 @@ enum STATUS{
     FAILED,
     RUNNING,
     ABORTED,
-
+    READED,
 }
 
 pub struct Future<T>
@@ -33,6 +33,10 @@ impl <T> Future<T>
 where T: Send + 'static
 {
     pub fn get(&self) -> Option<T>{
+      /*  if let STATUS::READED = *self.stat.read().unwrap(){
+            println!("This future was already read");
+        }*/
+       // *self.stat.write().unwrap() = STATUS::READED;
         self.rec.write().unwrap().take()
     }
 
@@ -47,11 +51,12 @@ where T: Send + 'static
 
 
     pub fn run(&self) -> (){
-        let mut funct1 = self.funz.write().unwrap().take().unwrap();
+        let funct = self.funz.write().unwrap().take().unwrap();
         *self.stat.write().unwrap() = STATUS::RUNNING;
-        let ret = funct1.call();
+        let ret = funct.call();
         *self.rec.write().unwrap() = Some(ret);
         *self.stat.write().unwrap() = STATUS::SUCCEEDED;
+
     }
 
     pub fn new<F>(runnable : F) -> Future<T>  where
