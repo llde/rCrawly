@@ -58,8 +58,10 @@ impl DagonCrawler{
                         let base_url = res.uri;
                         if let Some(ex) = res.exception {
                             println!("Excepted : {} \n  Reason : {}", &base_url, ex);
-                            to_load_arc.lock().unwrap().remove(&base_url);
-                            errors_arc.lock().unwrap().insert(base_url);
+                            let mut locks = (to_load_arc.lock().unwrap(), errors_arc.lock().unwrap());
+                            locks.0.remove(&base_url);
+                            holder.remove(&base_url);
+                            locks.1.insert(base_url);
                         } else if let Some(par) = res.parsed {
                             println!("Suceeeded : {} \n ", &base_url);
                             for url in par.consume() {
@@ -80,6 +82,7 @@ impl DagonCrawler{
                             {
                                 let mut locks = (to_load_arc.lock().unwrap(), loaded_arc.lock().unwrap());
                                 locks.0.remove(&base_url);
+                                holder.remove(&base_url);
                                 locks.1.insert(base_url);
                             }
                         }

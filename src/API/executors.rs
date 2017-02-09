@@ -4,12 +4,9 @@ use std::thread;
 use API::Future;
 
 enum STATUS{
-    INIT,
-    SUCCEEDED,
-    FAILED,
     RUNNING,
-    ABORTED,
-
+    CANCELLED,
+    PAUSED,
 }
 
 pub struct ThreadPoolExecutor<T>{
@@ -23,7 +20,7 @@ impl <T> ThreadPoolExecutor<T> where T: Send + 'static{
     //TODO AVOID LOCK POISON
     //TODO TRY TO AVOID THE T PARAMETER
     pub fn new(num_threads : u32) -> ThreadPoolExecutor<T>{
-        ThreadPoolExecutor{workers: Arc::new(Mutex::new(VecDeque::new())), status : STATUS::INIT, task_count : 0, num_thread : num_threads, current_threads:Arc::new(RwLock::new(0))}
+        ThreadPoolExecutor{workers: Arc::new(Mutex::new(VecDeque::new())), status : STATUS::RUNNING, task_count : 0, num_thread : num_threads, current_threads:Arc::new(RwLock::new(0))}
     }
 
 

@@ -20,8 +20,7 @@ pub struct AsyncLoader {
 
 
 impl AsyncLoader{
-    pub fn new(num : u32) -> AsyncLoader{  //      unimplemented!();
-
+    pub fn new(num : u32) -> AsyncLoader{
         let mut loaders = Vec::new();
         for n in 0..(num+1){
             loaders.push(GondorLoader::new());
@@ -32,18 +31,10 @@ impl AsyncLoader{
     pub fn loadAsync(&self, uri1 : Url) -> Arc<Future<LoadResult>>{
         let arc = self.loaders.clone();
         let fut = self.workers.submit(move || {
-            let loader;
-            let arc1 = arc;
-            {
-                let ref mut sss = *arc1.as_ref().lock().unwrap();
-                loader = sss.remove(0);
-            }
+            let loader = arc.as_ref().lock().unwrap().remove(0);
             let result = loader.load(uri1);
-            {
-                let ref mut sss = *arc1.as_ref().lock().unwrap();
-                sss.push(loader);
-                return result;
-            }
+            arc.as_ref().lock().unwrap().push(loader);
+            return result;
         });
         fut
     }
