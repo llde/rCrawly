@@ -7,6 +7,10 @@ use std::collections::{VecDeque,HashSet};
 use std::thread;
 use hyper::Url;
 
+pub trait Predicate<T>{
+    fn accept(&self , other : &T) -> bool;
+}
+
 enum STATUS{
     INIT,
     RUNNING,
@@ -23,27 +27,43 @@ pub struct DagonCrawler{
     errors : Arc<Mutex<HashSet<Url>>>,
     progression : Arc<Mutex<VecDeque<Arc<Future<LoadResult>>>>>,
     status : Arc<Mutex<STATUS>>, //TODO ENUM
+    pred : Arc<Box<Predicate<Url>>>
 }
 
 
 
 impl DagonCrawler{
-    pub fn new(to_load : HashSet<Url>, loaded: HashSet<Url>, errors : HashSet<Url>) -> DagonCrawler{
-        DagonCrawler{async : Arc::new(AsyncLoader::new(50)), to_load : Arc::new(Mutex::new(to_load)), loaded: Arc::new(Mutex::new(loaded)), errors: Arc::new(Mutex::new(errors)), progression : Arc::new(Mutex::new(VecDeque::new())), status : Arc::new(Mutex::new(STATUS::INIT))}
-        //unimplemented!()
+    pub fn new(to_load : HashSet<Url>, loaded: HashSet<Url>, errors : HashSet<Url>, predicate : Box<Predicate<Url>>) -> DagonCrawler{
+        DagonCrawler{async : Arc::new(AsyncLoader::new(50)), to_load : Arc::new(Mutex::new(to_load)), loaded: Arc::new(Mutex::new(loaded)), errors: Arc::new(Mutex::new(errors)), progression : Arc::new(Mutex::new(VecDeque::new())), status : Arc::new(Mutex::new(STATUS::INIT)), pred : Arc::new(predicate)}
     }
 
     pub fn start(&self){
-        //TODO status.
-        let mut to_load_arc = self.to_load.clone();
-        let mut async_arc = self.async.clone();
-        let mut progr_arc = self.progression.clone();
-        let mut loaded_arc = self.loaded.clone();
-        let mut errors_arc  = self.errors.clone();
+        {
+            let ref status = self.status.as_ref().lock().unwrap();
+            if let STATUS::RUNNING = **status {
+                return;
+            } else if let STATUS::CANCELLED = **status {
+                return;
+            } else if let STATUS::TERMINATED = **status {
+                return;
+            }
+        }
+        let to_load_arc = self.to_load.clone();
+        let async_arc = self.async.clone();
+        let progr_arc = self.progression.clone();
+        let loaded_arc = self.loaded.clone();
+        let errors_arc  = self.errors.clone();
+        let pred_arc  = self.pred.clone();
+        *self.status.lock().unwrap() = STATUS::RUNNING;
+        let status_arc = self.status.clone();
         thread::spawn(move || {
             //Producer and Consumer . //TODO Split
             let mut holder = HashSet::new();
             loop {
+                if to_load_arc.lock().unwrap().len() == 0{
+                    *status_arc.lock().unwrap() = STATUS::TERMINATED;
+                    return;
+                }
                 for url in to_load_arc.lock().unwrap().iter() {
                     if holder.contains(url){continue;}
                     println!("Submitted: {}", url);

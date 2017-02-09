@@ -7,7 +7,7 @@ pub use hyper::{Client,Url};
 pub use LoaderCore::loader::GondorLoader;
 pub use LoaderCore::loadResult::LoadResult;
 pub use AsyncLoaderCore::AsyncLoader;
-pub use CrawlerCore::DagonCrawler;
+pub use CrawlerCore::{Predicate,DagonCrawler};
 pub use GUI::Crawly;
 pub mod LoaderCore;
 pub mod AsyncLoaderCore;
@@ -15,10 +15,19 @@ pub mod CrawlerCore;
 pub mod GUI;
 pub mod API;
 
+pub struct PredDom{
+    dominio : Url
+}
 
+impl Predicate<Url> for PredDom{
+    fn accept(&self, other : &Url) -> bool{
+        true
+    }
+}
 fn main(){
     println!("Hello");
-    let crawler = CrawlerCore::DagonCrawler::new(HashSet::new(),HashSet::new(),HashSet::new());
+    let predicate = PredDom{dominio : Url::parse("https://bugs.winehq.org/").unwrap()};
+    let crawler = CrawlerCore::DagonCrawler::new(HashSet::new(),HashSet::new(),HashSet::new(), Box::new(predicate));
     crawler.add(Url::parse("https://bugs.winehq.org/show_bug.cgi?id=1").unwrap());
     crawler.start();
     loop{}
