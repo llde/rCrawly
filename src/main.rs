@@ -3,6 +3,7 @@
 pub extern crate hyper;
 use std::sync::Arc;
 use std::collections::HashSet;
+use std::{time,thread};
 pub use hyper::{Client,Url};
 pub use LoaderCore::loader::GondorLoader;
 pub use LoaderCore::loadResult::LoadResult;
@@ -18,19 +19,28 @@ pub mod API;
 pub struct PredDom{
     dominio : Url
 }
-
+unsafe impl Sync for PredDom{}
+unsafe impl Send for PredDom{}
 impl Predicate<Url> for PredDom{
     fn accept(&self, other : &Url) -> bool{
-        true
+        //TODO accept IP domains
+        if other.domain() == self.dominio.domain(){
+            true
+        }
+        else{false}
     }
 }
+
+
 fn main(){
-    println!("Hello");
-    let predicate = PredDom{dominio : Url::parse("https://bugs.winehq.org/").unwrap()};
+    let predicate = PredDom{dominio : Url::parse("http://www.agriturismomelograno.com/").unwrap()};
     let crawler = CrawlerCore::DagonCrawler::new(HashSet::new(),HashSet::new(),HashSet::new(), Box::new(predicate));
-    crawler.add(Url::parse("https://bugs.winehq.org/show_bug.cgi?id=1").unwrap());
+    crawler.add(Url::parse("http://www.agriturismomelograno.com/").unwrap());
     crawler.start();
-    loop{}
+    thread::sleep(time::Duration::from_secs(90));
+    for url in crawler.get_to_load().iter(){
+        println!("{}", url);
+    }
   /* let mut async  = AsyncLoaderCore::AsyncLoader::new(50);
    let mut vect : Vec<Arc<Future<LoadResult>>>  = Vec::new();
    //Crawly::new();

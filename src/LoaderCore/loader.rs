@@ -16,17 +16,29 @@ impl GondorLoader{
     }
     pub fn load(&self, uri: Url) -> LoadResult{
         let amen = self.client.get(uri.as_str()).send();
-        if let Ok(mut content) = amen{
-            let mut resp = String::new();
-            //TODO handle possible read_to_string failures
-            content.read_to_string(&mut resp);
-            LoadResult::new(uri, Parsed::parse(resp))
+        match amen{
+            Ok(mut content) => {
+                let mut resp = String::new();
+                //TODO handle possible read_to_string failures
+                content.read_to_string(&mut resp);
+                LoadResult::new(uri, Parsed::parse(resp))
+            }
+            Err(error) => {
+                LoadResult::new_error(uri, error)
+            }
         }
-        else if let Err(error) = amen{
-            LoadResult::new_error(uri, error)
-        }
-        else{
-            unreachable!();
+    }
+
+
+    pub fn check(&self, uri: Url) -> LoadResult{
+        let amen = self.client.get(uri.as_str()).send();
+        match amen{
+            Ok(mut content) => {
+                LoadResult::new_check(uri)
+            }
+            Err(error) => {
+                LoadResult::new_error(uri, error)
+            }
         }
     }
 }

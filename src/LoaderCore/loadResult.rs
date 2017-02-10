@@ -14,6 +14,10 @@ impl LoadResult{
     pub fn new(uri : Url, content : Parsed) -> LoadResult{
         LoadResult{uri : uri, parsed : Some(content), exception : None}
     }
+
+    pub fn new_check(uri:Url) -> LoadResult{
+        LoadResult{uri : uri, parsed :  None , exception : None}
+    }
 }
 
 //TODO make really Send and Sync

@@ -39,8 +39,18 @@ impl AsyncLoader{
         fut
     }
 
+    pub fn checkAsync(&self, uri : Url) -> Arc<Future<LoadResult>> {
+        let arc = self.loaders.clone();
+        let fut = self.workers.submit(move || {
+            let loader = arc.as_ref().lock().unwrap().remove(0);
+            let result = loader.check(uri);
+            arc.as_ref().lock().unwrap().push(loader);
+            return result;
+        });
+        fut
+    }
+
 //TODO shutdown
     pub fn shutdown(&mut self, now : bool){}
-
 
 }
