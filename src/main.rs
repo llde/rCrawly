@@ -24,6 +24,7 @@ unsafe impl Send for PredDom{}
 impl Predicate<Url> for PredDom{
     fn accept(&self, other : &Url) -> bool{
         //TODO accept IP domains
+        //TODO remove option equal in favor of an explicit equal
         if other.domain() == self.dominio.domain(){
             true
         }

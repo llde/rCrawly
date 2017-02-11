@@ -3,7 +3,7 @@ use super::LoaderCore::loadResult::LoadResult;
 use super::API::ThreadPoolExecutor;
 use super::API::Future;
 use std::sync::{Arc,Mutex};
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{Ordering,AtomicBool};
 use hyper::Url;
 pub trait Observable {
 
@@ -36,7 +36,8 @@ impl AsyncLoader{
             arc.as_ref().lock().unwrap().push(loader);
             return result;
         });
-        fut
+        //TODO proper error handling
+        fut.unwrap()
     }
 
     pub fn checkAsync(&self, uri : Url) -> Arc<Future<LoadResult>> {
@@ -47,10 +48,14 @@ impl AsyncLoader{
             arc.as_ref().lock().unwrap().push(loader);
             return result;
         });
-        fut
+        //TODO proper error handling
+        fut.unwrap()
     }
 
 //TODO shutdown
-    pub fn shutdown(&mut self, now : bool){}
+    pub fn shutdown(&mut self, now : bool){
+        self.active.store(true, Ordering::Relaxed);
+        self.shutdown(now);
+    }
 
 }

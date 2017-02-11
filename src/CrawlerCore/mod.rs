@@ -16,6 +16,7 @@ enum STATUS{
     RUNNING,
     SUSPENDED,
     TERMINATED,
+    TERMINATED_UNEXPECTLY,
     CANCELLED,
 }
 
@@ -77,6 +78,17 @@ impl DagonCrawler{
                         fut = async_arc.checkAsync(url.clone());
                     }
                     holder.insert(url.clone());
+              /*      match fut{
+                        Err(reason)  => {
+                            println!("Got an issue with the AsyncLoader, Cannot continue.");
+                            progr_arc.lock().unwrap().clear();
+                            holder.clear();
+                            //TODO manage proper cancellation handling
+                            *status_arc.lock().unwrap() =  STATUS::TERMINATED_UNEXPECTLY;
+                            return;
+                        }
+                        Ok(fu) => {progr_arc.lock().unwrap().push_back(fut);}
+                    }*/
                     progr_arc.lock().unwrap().push_back(fut);
                 }
                 let mut holderer = Vec::new();

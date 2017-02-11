@@ -17,8 +17,15 @@ enum STATUS{
     SUCCEEDED,
     FAILED,
     RUNNING,
-    ABORTED,
-    READED,
+}
+
+
+
+pub enum ERRORS{
+    ALREADY_COMPLETED,
+    ALREADY_READED,
+    FAILED,
+    NOT_STARTED
 }
 
 pub struct Future<T>
@@ -33,6 +40,7 @@ impl <T> Future<T>
 where T: Send + 'static
 {
     pub fn get(&self) -> Option<T>{
+        //TODO RESULT?
       /*  if let STATUS::READED = *self.stat.read().unwrap(){
             println!("This future was already read");
         }*/
@@ -50,13 +58,16 @@ where T: Send + 'static
     }
 
 
-    pub fn run(&self) -> (){
+    pub fn run(&self) -> Result<(),ERRORS>{
+        if let STATUS::SUCCEEDED = *self.stat.read().unwrap(){
+            return Err(ERRORS::ALREADY_COMPLETED);
+        }
         let funct = self.funz.write().unwrap().take().unwrap();
         *self.stat.write().unwrap() = STATUS::RUNNING;
         let ret = funct.call();
         *self.rec.write().unwrap() = Some(ret);
         *self.stat.write().unwrap() = STATUS::SUCCEEDED;
-
+        Ok(())
     }
 
     pub fn new<F>(runnable : F) -> Future<T>  where
