@@ -12,20 +12,24 @@ impl<T,F : Send + FnOnce() -> T> Task<T> for F{
     }
 }
 
+#[derive(Copy,Clone)]
 enum STATUS{
     INIT,
     SUCCEEDED,
     FAILED,
     RUNNING,
+    READED
 }
 
 
 
 pub enum ERRORS{
-    ALREADY_COMPLETED,
+    ALREADY_STARTED,
     ALREADY_READED,
     FAILED,
-    NOT_STARTED
+    NOT_STARTED,
+    NOT_COMPLETED,
+    UNKNOW
 }
 
 pub struct Future<T>
@@ -39,13 +43,29 @@ pub struct Future<T>
 impl <T> Future<T>
 where T: Send + 'static
 {
-    pub fn get(&self) -> Option<T>{
-        //TODO RESULT?
-      /*  if let STATUS::READED = *self.stat.read().unwrap(){
-            println!("This future was already read");
-        }*/
-       // *self.stat.write().unwrap() = STATUS::READED;
-        self.rec.write().unwrap().take()
+    pub fn get(&self) -> Result<T,ERRORS>{
+        let x = self.stat.read().unwrap().clone();
+        if let STATUS::SUCCEEDED = x{
+            if let Some(c) = self.rec.write().unwrap().take() {
+                *self.stat.write().unwrap() = STATUS::READED;
+                Ok(c)
+            }
+            else{
+                panic!();
+            }
+        }
+        else if let STATUS::READED = x{
+            Err(ERRORS::ALREADY_READED)
+        }
+        else if let STATUS::INIT =  x{
+            Err(ERRORS::NOT_STARTED)
+        }
+        else if let STATUS::RUNNING = x{
+            Err(ERRORS::NOT_COMPLETED)
+        }
+        else{
+            Err(ERRORS::UNKNOW)
+        }
     }
 
     pub fn is_done(&self) -> bool{
@@ -60,7 +80,7 @@ where T: Send + 'static
 
     pub fn run(&self) -> Result<(),ERRORS>{
         if let STATUS::SUCCEEDED = *self.stat.read().unwrap(){
-            return Err(ERRORS::ALREADY_COMPLETED);
+            return Err(ERRORS::ALREADY_STARTED);
         }
         let funct = self.funz.write().unwrap().take().unwrap();
         *self.stat.write().unwrap() = STATUS::RUNNING;

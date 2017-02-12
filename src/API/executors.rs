@@ -33,7 +33,7 @@ impl <T> ThreadPoolExecutor<T> where T: Send + 'static{
 
     pub fn submit<F>(&self, function : F ) -> Result<Arc<Future<T>>,ERRORS>
         where F : FnOnce() -> T + Send +'static {
-        if let STATUS::SHUTDOWN = *self.lock().unwrap(){
+        if let STATUS::SHUTDOWN = *self.status.lock().unwrap(){
             return Err(ERRORS::IS_SHUTDOWN);
         }
         let fut = Arc::new(Future::new(function));

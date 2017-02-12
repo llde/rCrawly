@@ -94,7 +94,14 @@ impl DagonCrawler{
                 let mut holderer = Vec::new();
                 for (index, fut) in progr_arc.lock().unwrap().iter().enumerate(){
                     if fut.is_done() {
-                        let res = fut.get().unwrap();
+                        let res;
+                        if let Ok(r) = fut.get(){
+                             res = r
+                        }
+                        else{
+                            //TODO REAL ERROR HANDLING
+                            panic!();
+                        }
                         let base_url = res.uri;
                         if let Some(ex) = res.exception {
                             println!("Excepted : {}  Reason : {}", &base_url, ex);

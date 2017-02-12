@@ -37,7 +37,10 @@ impl AsyncLoader{
             return result;
         });
         //TODO proper error handling
-        fut.unwrap()
+        if let Ok(fu) = fut{
+            return fu;
+        }
+        unreachable!();
     }
 
     pub fn checkAsync(&self, uri : Url) -> Arc<Future<LoadResult>> {
@@ -49,7 +52,10 @@ impl AsyncLoader{
             return result;
         });
         //TODO proper error handling
-        fut.unwrap()
+        if let Ok(fu) = fut{
+            return fu;
+        }
+        unreachable!();
     }
 
 //TODO shutdown
