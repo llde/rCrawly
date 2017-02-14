@@ -19,6 +19,7 @@ pub mod API;
 pub struct PredDom{
     dominio : Url
 }
+
 unsafe impl Sync for PredDom{}
 unsafe impl Send for PredDom{}
 impl Predicate<Url> for PredDom{
@@ -38,7 +39,9 @@ fn main(){
     let crawler = CrawlerCore::DagonCrawler::new(HashSet::new(),HashSet::new(),HashSet::new(), Box::new(predicate));
     crawler.add(Url::parse("http://www.agriturismomelograno.com/").unwrap());
     crawler.start();
-    thread::sleep(time::Duration::from_secs(90));
+    while crawler.is_running(){
+        continue;
+    }
     for url in crawler.get_to_load().iter(){
         println!("{}", url);
     }

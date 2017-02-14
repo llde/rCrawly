@@ -9,12 +9,9 @@ enum STATUS{
     PAUSED,
 }
 
-
 pub enum ERRORS{
     IS_SHUTDOWN
 }
-
-
 
 pub struct ThreadPoolExecutor<T>{
     workers : Arc<Mutex<VecDeque<Arc<Future<T>>>>>,
@@ -29,7 +26,6 @@ impl <T> ThreadPoolExecutor<T> where T: Send + 'static{
     pub fn new(num_threads : u32) -> ThreadPoolExecutor<T>{
         ThreadPoolExecutor{workers: Arc::new(Mutex::new(VecDeque::new())), status : Arc::new(Mutex::new(STATUS::RUNNING)), task_count : 0, num_thread : num_threads, current_threads:Arc::new(RwLock::new(0))}
     }
-
 
     pub fn submit<F>(&self, function : F ) -> Result<Arc<Future<T>>,ERRORS>
         where F : FnOnce() -> T + Send +'static {

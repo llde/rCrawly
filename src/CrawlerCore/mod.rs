@@ -159,7 +159,43 @@ impl DagonCrawler{
 
     fn get(&self){unimplemented!()}
 
+    //TODO API?
     pub fn get_to_load(&self) -> MutexGuard<HashSet<Url>>{
         self.to_load.lock().unwrap()
     }
+
+    pub fn get_loaded(&self) -> MutexGuard<HashSet<Url>>{
+        self.loaded.lock().unwrap()
+    }
+
+    pub fn error(&self) -> MutexGuard<HashSet<Url>>{
+        self.errors.lock().unwrap()
+    }
+
+    pub fn is_running(&self) -> bool{
+        if let STATUS::RUNNING = *self.status.lock().unwrap(){
+            true
+        }
+        else{false}
+    }
+
+    pub fn is_cancelled(&self) -> bool{
+        if let STATUS::CANCELLED = *self.status.lock().unwrap(){
+            true
+        }
+        else{false}
+    }
+    pub fn is_suspended(&self) -> bool{
+        if let STATUS::SUSPENDED = *self.status.lock().unwrap(){
+            true
+        }
+        else{false}
+    }
+    pub fn is_terminated(&self) -> bool{
+        if let STATUS::TERMINATED = *self.status.lock().unwrap(){
+            true
+        }
+        else{false}
+    }
+
 }
