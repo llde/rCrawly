@@ -20,6 +20,15 @@ enum STATUS{
     CANCELLED,
 }
 
+pub struct CrawlerResult{
+    url : Url,
+    links : Option<Vec<Url>>,
+    bad_links : Option<Vec<String>>,
+    error : Option<String>
+}
+
+
+
 pub struct DagonCrawler{
     //TODO get concurrent data structures for better performance
     async : Arc<AsyncLoader>,
@@ -155,7 +164,15 @@ impl DagonCrawler{
         self.to_load.lock().unwrap().insert(url);
     }
 
-    fn cancel(&self){unimplemented!()}
+    fn cancel(&self){
+        *self.status.lock().unwrap() = STATUS::CANCELLED;
+        self.to_load.lock().unwrap().clear();
+        self.progression.lock().unwrap().clear();
+        self.errors.lock().unwrap().clear();
+        self.loaded.lock().unwrap().clear();
+        self.async.shutdown(true);
+
+    }
 
     fn get(&self){unimplemented!()}
 
