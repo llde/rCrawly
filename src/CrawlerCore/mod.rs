@@ -5,7 +5,7 @@ use super::API::Future;
 use std::sync::{Arc,Mutex,MutexGuard};
 use std::collections::{VecDeque,HashSet};
 use std::thread;
-use hyper::Url;
+use hyper::{Error,Url};
 
 pub trait Predicate<T>{
     fn accept(&self , other : &T) -> bool;
@@ -24,10 +24,22 @@ pub struct CrawlerResult{
     url : Url,
     links : Option<Vec<Url>>,
     bad_links : Option<Vec<String>>,
-    error : Option<String>
+    error : Option<Error>
 }
 
+impl CrawlerResult{
+    pub fn new(url : Url, linkg : Vec<Url>, linkb : Vec<String>) -> CrawlerResult{
+        CrawlerResult{url : url , links : Some(linkg), bad_links : Some(linkb), error : None}
+    }
 
+    pub fn new_error(url : Url, error : Error) -> CrawlerResult{
+        CrawlerResult{url : url, links : None, bad_links : None, error : Some(error)}
+    }
+
+    pub fn new_nolinks(url : Url) -> CrawlerResult {
+        CrawlerResult{url : url, links : None, bad_links : None, error : None}
+    }
+}
 
 pub struct DagonCrawler{
     //TODO get concurrent data structures for better performance
@@ -36,7 +48,8 @@ pub struct DagonCrawler{
     loaded : Arc<Mutex<HashSet<Url>>>,
     errors : Arc<Mutex<HashSet<Url>>>,
     progression : Arc<Mutex<VecDeque<Arc<Future<LoadResult>>>>>,
-    status : Arc<Mutex<STATUS>>, //TODO ENUM
+    results : Arc<Mutex<Vec<CrawlerResult>>>,
+    status : Arc<Mutex<STATUS>>, //TODO Atomic
     pred : Arc<Box<Predicate<Url> + Send + Sync>>
 }
 
@@ -44,7 +57,7 @@ pub struct DagonCrawler{
 
 impl DagonCrawler{
     pub fn new(to_load : HashSet<Url>, loaded: HashSet<Url>, errors : HashSet<Url>, predicate : Box<Predicate<Url> +Send + Sync>) -> DagonCrawler{
-        DagonCrawler{async : Arc::new(AsyncLoader::new(50)), to_load : Arc::new(Mutex::new(to_load)), loaded: Arc::new(Mutex::new(loaded)), errors: Arc::new(Mutex::new(errors)), progression : Arc::new(Mutex::new(VecDeque::new())), status : Arc::new(Mutex::new(STATUS::INIT)), pred : Arc::new(predicate)}
+        DagonCrawler{async : Arc::new(AsyncLoader::new(50)), to_load : Arc::new(Mutex::new(to_load)), loaded: Arc::new(Mutex::new(loaded)), errors: Arc::new(Mutex::new(errors)), progression : Arc::new(Mutex::new(VecDeque::new())), results : Arc::new(Mutex::new(Vec::new())), status : Arc::new(Mutex::new(STATUS::INIT)), pred : Arc::new(predicate)}
     }
 
     pub fn start(&self){
@@ -64,6 +77,7 @@ impl DagonCrawler{
         let loaded_arc = self.loaded.clone();
         let errors_arc  = self.errors.clone();
         let pred_arc  = self.pred.clone();
+        let result_arc = self.results.clone();
         *self.status.lock().unwrap() = STATUS::RUNNING;
         let status_arc = self.status.clone();
         thread::spawn(move || {
@@ -114,9 +128,10 @@ impl DagonCrawler{
                         let base_url = res.uri;
                         if let Some(ex) = res.exception {
                             println!("Excepted : {}  Reason : {}", &base_url, ex);
-                            let mut locks = (to_load_arc.lock().unwrap(), errors_arc.lock().unwrap());
+                            let mut locks = (to_load_arc.lock().unwrap(), errors_arc.lock().unwrap(), result_arc.lock().unwrap());
                             locks.0.remove(&base_url);
                             holder.remove(&base_url);
+                            locks.2.push(CrawlerResult::new_error(base_url.clone(), ex));
                             locks.1.insert(base_url);
                         } else {
                             println!("Suceeeded : {} ", &base_url);
@@ -136,6 +151,11 @@ impl DagonCrawler{
                                         println!("{:?}", error);
                                     }
                                 }
+                                //TODO create CrawlerResult
+//                                result_arc.lock().unwrap();
+                            }
+                            else{
+                                result_arc.lock().unwrap().push(CrawlerResult::new_nolinks(base_url.clone()));
                             }
                             let mut locks = (to_load_arc.lock().unwrap(), loaded_arc.lock().unwrap());
                             locks.0.remove(&base_url);
