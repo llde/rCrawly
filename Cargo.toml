@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Lorenzo <lorenzofersteam@live.it>"]
 
 [dependencies]
-select = "0.3.0"
+select = "0.4.0"
 hyper = "0.10.0"
-hyper-rustls = "0.3.0"
+hyper-rustls = "0.3.3"
 #TODO Switch from select to use directly html5ever
 

@@ -61,7 +61,7 @@ impl AsyncLoader{
 //TODO shutdown
     pub fn shutdown(&self, now : bool){
         self.active.store(true, Ordering::Relaxed);
-        self.shutdown(now);
+        self.workers.shutdown(now);
     }
 
 }

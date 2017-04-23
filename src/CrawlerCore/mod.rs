@@ -22,6 +22,7 @@ enum STATUS{
 
 pub struct CrawlerResult{
     url : Url,
+    follow : bool,
     links : Option<Vec<Url>>,
     bad_links : Option<Vec<String>>,
     error : Option<Error>
@@ -29,15 +30,15 @@ pub struct CrawlerResult{
 
 impl CrawlerResult{
     pub fn new(url : Url, linkg : Vec<Url>, linkb : Vec<String>) -> CrawlerResult{
-        CrawlerResult{url : url , links : Some(linkg), bad_links : Some(linkb), error : None}
+        CrawlerResult{url : url, follow : true , links : Some(linkg), bad_links : Some(linkb), error : None}
     }
 
     pub fn new_error(url : Url, error : Error) -> CrawlerResult{
-        CrawlerResult{url : url, links : None, bad_links : None, error : Some(error)}
+        CrawlerResult{url : url, follow : false, links : None, bad_links : None, error : Some(error)}
     }
 
     pub fn new_nolinks(url : Url) -> CrawlerResult {
-        CrawlerResult{url : url, links : None, bad_links : None, error : None}
+        CrawlerResult{url : url, follow: false, links : None, bad_links : None, error : None}
     }
 }
 
@@ -136,23 +137,27 @@ impl DagonCrawler{
                         } else {
                             println!("Suceeeded : {} ", &base_url);
                             if let Some(par) = res.parsed {
+                                let mut good_links = Vec::new();
+                                let mut bad_links = Vec::new();
                                 for url in par.consume() {
                                     let opt = base_url.join(&url);
                                     if let Ok(new_url) = opt {
+                                        good_links.push(new_url.clone());
                                         let tl = to_load_arc.lock().unwrap().contains(&new_url);
                                         if tl == true { continue; }
                                         let ll = loaded_arc.lock().unwrap().contains(&new_url);
                                         if ll == true { continue; }
                                         let el = errors_arc.lock().unwrap().contains(&new_url);
                                         if el == true { continue; }
-                                        //TODO CrawlerResult and control with the predicate
                                         to_load_arc.lock().unwrap().insert(new_url);
                                     } else if let Err(error) = opt {
                                         println!("{:?}", error);
+                                        //TODO save the reasons of the error also?
+                                        bad_links.push(url);
                                     }
                                 }
-                                //TODO create CrawlerResult
-//                                result_arc.lock().unwrap();
+
+                                result_arc.lock().unwrap().push(CrawlerResult::new(base_url.clone(), good_links,bad_links));
                             }
                             else{
                                 result_arc.lock().unwrap().push(CrawlerResult::new_nolinks(base_url.clone()));
