@@ -29,6 +29,7 @@ impl AsyncLoader{
     }
 
     pub fn loadAsync(&self, uri1 : Url) -> Arc<Future<LoadResult>>{
+        //TODO shutdown controls
         let arc = self.loaders.clone();
         let fut = self.workers.submit(move || {
             let loader = arc.as_ref().lock().unwrap().remove(0);
@@ -44,6 +45,7 @@ impl AsyncLoader{
     }
 
     pub fn checkAsync(&self, uri : Url) -> Arc<Future<LoadResult>> {
+        //TODO shutdown controls
         let arc = self.loaders.clone();
         let fut = self.workers.submit(move || {
             let loader = arc.as_ref().lock().unwrap().remove(0);
@@ -58,9 +60,8 @@ impl AsyncLoader{
         unreachable!();
     }
 
-//TODO shutdown
     pub fn shutdown(&self, now : bool){
-        self.active.store(true, Ordering::Relaxed);
+        self.active.store(false, Ordering::Relaxed);
         self.workers.shutdown(now);
     }
 
