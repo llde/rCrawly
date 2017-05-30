@@ -199,7 +199,13 @@ impl DagonCrawler{
 
     }
 
-    fn get(&self){unimplemented!()}
+    fn get_uri(&self, url : Url) -> CrawlerResult{
+        unimplemented!()
+    }
+
+    fn get_progressions(&self) -> MutexGuard<VecDeque<CrawlerResult>>{
+        unimplemented!()
+    }
 
     //TODO API?
     pub fn get_to_load(&self) -> MutexGuard<HashSet<Url>>{
